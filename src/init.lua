@@ -1,6 +1,6 @@
 local Packages = script.Parent
 
-local Object = require(Packages.Object)
+local Object = require(Packages.object)
 
 local Signal = Object:Extend()
 
