@@ -1,5 +1,3 @@
---# selene: allow(undefined_variable)
-
 return function()
 	local Signal = require(script.Parent)
 
