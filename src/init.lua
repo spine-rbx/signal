@@ -9,13 +9,22 @@ function Signal:Constructor()
 end
 
 function Signal:Connect(Callback: (...any) -> ())
-	local n = #self._CallbackList + 1
-	self._CallbackList[n] = Callback
+	self._CallbackList[#self._CallbackList + 1] = Callback
 
 	return {
-		Disconnect = function()
-			table.remove(self._CallbackList, n)
-		end
+		Disconnect = function(con)
+			local index = 0
+			for i,v in ipairs(self._CallbackList) do
+				if v == con then
+					index = i
+					break
+				end
+			end
+
+			if index > 0 then
+				table.remove(self._CallbackList, index)
+			end
+		end,
 	}
 end
 
