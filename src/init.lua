@@ -2,11 +2,17 @@ local Packages = script.Parent
 
 local Object = require(Packages.object)
 local Promise = require(Packages.promise)
+local Bin = require(Packages.bin)
 
 local Signal = Object:Extend()
 
 function Signal:Constructor()
+	self._Bin = Bin:New()
 	self._CallbackList = {}
+
+	self._Bin:AddItem(function()
+		self._CallbackList = nil
+	end)
 end
 
 function Signal:Connect(Callback: (...any) -> ())
@@ -14,16 +20,15 @@ function Signal:Connect(Callback: (...any) -> ())
 
 	return {
 		Disconnect = function()
-			local index = 0
-			for i,v in ipairs(self._CallbackList) do
-				if v == Callback then
-					index = i
-					break
-				end
+			if self._CallbackList == nil then
+				return
 			end
 
-			if index > 0 then
-				table.remove(self._CallbackList, index)
+			for i,v in ipairs(self._CallbackList) do
+				if v == Callback then
+					table.remove(self._CallbackList, i)
+					break
+				end
 			end
 		end,
 	}
@@ -53,19 +58,20 @@ function Signal:Wait()
 end
 
 function Signal:Destroy()
-	self._CallbackList = nil
+	self._Bin:Empty()
 end
 
 export type Connection = { Disconnect: () -> () }
 
 export type Signal = Object.Object<{
+	_CallbackList: { (...any) -> () },
+	_Bin: Bin.Bin,
+
 	Connect: (self: Signal, Callback: (...any) -> ()) -> Connection,
 	Fire: (self: Signal, ...any) -> (),
 	Once: (self: Signal, Predicate: (...any) -> (boolean)?) -> (Promise.Promise),
 	Wait: (self: Signal) -> (Promise.Promise),
 	Destroy: (self: Signal) -> (),
-
-	_CallbackList: { (...any) -> () },
 }>
 
 return Signal :: Signal
