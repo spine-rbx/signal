@@ -36,18 +36,23 @@ return function()
 
 			expect(value).to.equal(false)
 		end)
+	end)
 
-		it("should wait", function()
+	describe("Signal:Once", function()
+		it("should yield", function()
 			local s = Signal:New()
 
 			task.defer(function()
-				s:Fire("hello", "world")
+				s:Fire(true)
 			end)
 
-			local hello, world = s:Wait()
+			local p = s:Once()
+			
+			p:Then(function(value)
+				expect(value).to.equal(true)
+			end)
 
-			expect(hello).to.equal("hello")
-			expect(world).to.equal("world")
+			expect(p:Wait()).to.equal(true)
 		end)
 	end)
 end
