@@ -1,6 +1,7 @@
 local Packages = script.Parent
 
 local Object = require(Packages.object)
+local Promise = require(Packages.promise)
 
 local Signal = Object:Extend()
 
@@ -12,10 +13,10 @@ function Signal:Connect(Callback: (...any) -> ())
 	self._CallbackList[#self._CallbackList + 1] = Callback
 
 	return {
-		Disconnect = function(con)
+		Disconnect = function()
 			local index = 0
 			for i,v in ipairs(self._CallbackList) do
-				if v == con then
+				if v == Callback then
 					index = i
 					break
 				end
@@ -34,42 +35,35 @@ function Signal:Fire(...)
 	end
 end
 
-function Signal:Wait()
-	local Running = coroutine.running()
-	local Disconnect
+function Signal:Once(Predicate: (...any) -> (boolean?)?)
+	return Promise:New(function(Resolve)
+		local Disconnect
 
-	Disconnect = self:Connect(function(...)
-		Disconnect()
-		coroutine.resume(Running, ...)
-	end).Disconnect
-
-	return coroutine.yield()
+		Disconnect = self:Connect(function(...)
+			if Predicate == nil or Predicate(...) then
+				Disconnect()
+				Resolve(...)
+			end
+		end).Disconnect
+	end)
 end
 
-function Signal:Once(Predicate: (...any) -> (boolean?))
-	local Running = coroutine.running()
-	local Disconnect
-
-	Disconnect = self:Connect(function(...)
-		if Predicate(...) == true then
-			Disconnect()
-			coroutine.resume(Running, ...)
-		end
-	end).Disconnect
-
-	return coroutine.yield()
+function Signal:Wait()
+	return self:Once()
 end
 
 function Signal:Destroy()
 	self._CallbackList = nil
 end
 
+export type Connection = { Disconnect: () -> () }
+
 export type Signal = Object.Object<{
-	Connect: (Callback: (...any) -> ()) -> { Disconnect: () -> () },
-	Fire: (...any) -> (),
-	Wait: () -> (...any),
-	Once: (Predicate: (...any) -> (boolean)) -> (...any),
-	Destroy: () -> (),
+	Connect: (self: Signal, Callback: (...any) -> ()) -> Connection,
+	Fire: (self: Signal, ...any) -> (),
+	Once: (self: Signal, Predicate: (...any) -> (boolean)?) -> (Promise.Promise),
+	Wait: (self: Signal) -> (Promise.Promise),
+	Destroy: (self: Signal) -> (),
 
 	_CallbackList: { (...any) -> () },
 }>
